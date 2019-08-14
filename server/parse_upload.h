@@ -14,6 +14,8 @@
 #define CR  '\r'
 #define LF  '\n'
 
+#define HEADLEN     40
+
 void* parse_upload(void* fdptr);
 int   parse_upload_head(void* h);
 

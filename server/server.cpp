@@ -1,4 +1,6 @@
 
+#define _GUN_SOURCE
+
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <strings.h>
@@ -8,6 +10,7 @@
 #include "util.h"
 #include "dbg.h"
 #include "epoll.h"
+#include "handler.h"
 
 #define MAXUSER 8
 #define TIMEOUT 400
@@ -50,7 +53,7 @@ int main()
     struct epoll_event event;
     bzero(&event, sizeof(event));
     event.events = EPOLLIN | EPOLLET;
-    event.data.fd = listen_fd;
+    event.data.ptr = new handler_t(listen_fd);
     epoll.add(listen_fd, &event);
 
     int n;
@@ -58,19 +61,44 @@ int main()
         n = epoll.wait(events, MAXUSER + 1, TIMEOUT);
 
         for(int i = 0; i < n; ++i) {
-            int infd = events[i].data.fd;
+            handler_t* h = (handler_t*)events[i].data.ptr;
+            int fd = h->fd;
 
-            if(infd == listen_fd) {
-                //EPOLLONESHOT
-                //不应该设置EPOLLET
+            int infd;
+            if(fd == listen_fd) {
+                while(1) {
+                    infd = accept(listen_fd, NULL, NULL);
+                    if(infd < 0) {
+                        if((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+                            break;
+                        }
+                        else {
+                            log_err("accept error");
+                            break;
+                        }
+                    }
+
+                    bzero(&event, sizeof(event));
+                    event.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT | EPOLLET | EPOLLRDHUP;
+                    event.data.ptr = (void*)new handler_t(infd);
+                    epoll.add(infd, &event);
+                }
             }
             else {
                 if(fd2name.find(infd) == fd2name.end()) {
-                    makethread(sign_in, (void*)&infd);
+                    if(events[i].events & EPOLLRDHUP) {
+                        delete events[i].data.ptr;
+                        epoll.del(infd, NULL);
+                    }
+                    else {
+                        //sign in
+                        makethread(sign_in, (void*)&infd, int);
+                    }
                 }
                 else {
+                    
                     if(events[i].events & EPOLLERR) {
-
+                        
                     }
                     else if(events[i].events & EPOLLRDHUP) {
 

@@ -36,7 +36,7 @@ void* sign_in(void* fdptr)
 
             auto user_it = pwd_list.find(name);
             if(user_it == pwd_list.end()) {
-                fprintf(fp, "User doesn't exit\n");
+                fprintf(fp, "User doesn't exist\n");
                 continue;
             }
             else {
@@ -72,13 +72,14 @@ void* sign_in(void* fdptr)
             pwd_bufer[strlen(pwd_bufer) - 1] = '\0';
             pwd = pwd_bufer;
 
+            pwd_list[name] = pwd;
+
             fprintf(fp, "Register successfully\n");
             
             continue;
-        }
-        else if(strncmp(bufer, "exit", 4) == 0) {
+        }   /* sign up */
+        else if((strncmp(bufer, "exit", 4) == 0) || strncmp(bufer, "3", 1) == 0) {
             //exit
-            //TODO
             //should server say something??
             close(fd);
         }
@@ -90,22 +91,4 @@ void* sign_in(void* fdptr)
     }   /* while */
 
     /* login successfully */
-}
-
-int makethread(void* (*fn)(void*), void* arg)
-{
-    int err;
-    pthread_t pid;
-    pthread_attr_t attr;
-
-    err = pthread_attr_init(&attr);
-    if(err != 0) {
-        return err;
-    }
-    err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    if(err == 0) {
-        err = pthread_create(&pid, &attr, fn, arg);
-    }
-    pthread_attr_destroy(&attr);
-    return err;
 }

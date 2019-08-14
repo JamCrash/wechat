@@ -6,7 +6,9 @@
 
 struct handler_t {
     handler_t(int infd)
-        : fd(infd), remain_size(MAXSIZE), parse_byte(0), state(0), method(0) { 
+        : fd(infd), remain_size(MAXSIZE)
+        , parse_byte(0), state(0), method(0)
+        , msglen(0) { 
         cur_pos = parse_ptr = msg_bufer;
     }
     int     fd;

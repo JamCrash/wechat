@@ -9,44 +9,71 @@
 
 #define SMALLSIZE   8
 
+//未完成
 void* parse_upload(void* fdptr)
 {
     int fd = *(int*)fdptr;
-    int n;
+    int head_remain_size = HEADLEN;
+    int msg_remain_size;
     int parse_state;
+    int n;
     handler_t* h = new handler_t(fd);
 
     while(1) {
-        n = read(fd, h->cur_pos, h->remain_size);
-        if(n == 0)
+        n = read(fd, h->cur_pos, head_remain_size);
+        if(n == 0) {
             break;
+        }
         if(n < 0) {
-            if(errno != EAGAIN) {
+            if(errno == EAGAIN)
+                continue;
+            else {
                 //TODO
                 //error
             }
-            //待优化
-            //read 为NONBLOCK, continue 会造成忙等
-            continue;
         }
-        //n > 0
+        head_remain_size -= n;
+        h->remain_size -= n;
         h->cur_pos += n;
         h->parse_byte += n;
-        h->remain_size -= n;
-        
+
         parse_state = parse_upload_head((void*)h);
-        if(parse_state == PARSE_UPLOAD_AGAIN)
+        if(parse_state == PARSE_UPLOAD_AGAIN) 
             continue;
         else if(parse_state != PARSE_UPLOAD_OK) {
             //TODO
             //error
         }
-        //PARSE_UPLOAD_OK
-    }   /* while */
 
-    //解析完成
-    //将待下传数据写入缓存或进行相应响应
-    download_handler((void*) h);
+        //parse head finish
+        if(h->msglen == 0) {
+            download_handler((void*)h);
+            delete h;
+            h = new handler_t(fd);
+        }
+        else {
+            msg_remain_size = h->msglen;
+            while(msg_remain_size > 0) {
+                n = read(fd, h->cur_pos, msg_remain_size);
+                if(n == 0) 
+                    break;
+                if(n < 0) {
+                    //TODO
+                    //error
+                }
+                msg_remain_size -= n;
+                h->cur_pos += n;
+                h->remain_size -= n;
+            }
+            if(n == 0) {
+                //TODO
+            }
+            //read finish
+            download_handler((void*)h);
+            delete h;
+            h = new handler_t(fd);
+        }
+    }
 }
 
 int parse_upload_head(void* hptr)

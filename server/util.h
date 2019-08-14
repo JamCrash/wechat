@@ -8,6 +8,23 @@
 
 #define BUFSIZE 512
 
+#define makethread(fn, rarg_ptr, TYPE)  \
+({  \
+    TYPE tmparg = *(TYPE*)rarg_ptr; \
+    int err;    \
+    pthread_t tid;  \
+    pthread_attr_t  attr;   \
+    err = pthread_attr_init(&attr); \
+    if(err == 0) {  \
+        err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);  \
+        if(err == 0) {  \
+            err == pthread_create(&tid, &attr, fn, &tmparg);    \
+        }   \
+        pthread_attr_destroy(&attr);    \
+    }   \
+    err;    \
+})
+
 typedef struct {
     char will_be_write[BUFSIZE];
     int total_byte = 0;
@@ -20,6 +37,5 @@ extern std::unordered_map<std::string, std::string> pwd_list;
 extern std::unordered_map<std::string, std::unordered_set<std::string>> friend_list;
 
 void* sign_in(void* fdptr);
-int makethread(void* (*fn)(void*), void*);
 
 #endif  /* UTIL_H */
