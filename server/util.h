@@ -8,7 +8,7 @@
 
 #define BUFSIZE 512
 
-#define makethread(fn, rarg_ptr, TYPE)  \
+#define makethread_arg_mutable(fn, rarg_ptr, TYPE)  \
 ({  \
     TYPE tmparg = *(TYPE*)rarg_ptr; \
     int err;    \
@@ -19,6 +19,22 @@
         err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);  \
         if(err == 0) {  \
             err == pthread_create(&tid, &attr, fn, &tmparg);    \
+        }   \
+        pthread_attr_destroy(&attr);    \
+    }   \
+    err;    \
+})
+
+#define makethread(fn, ptr) \
+({  \
+    int err;    \
+    pthread_t tid;   \
+    pthread_attr_t attr;    \
+    err = pthread_attr_init(&attr); \
+    if(err == 0) {  \
+        err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); \
+        if(err == 0) {  \
+            err = pthread_create(&tid, &attr, fn, ptr); \
         }   \
         pthread_attr_destroy(&attr);    \
     }   \

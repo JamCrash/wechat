@@ -16,7 +16,7 @@
 
 #define HEADLEN     40
 
-void* parse_upload(void* fdptr);
+void* parse_upload(void* hptr);
 int   parse_upload_head(void* h);
 
 #endif  /* PARSE_UPLOAD_H */

@@ -11,6 +11,7 @@
 #include "dbg.h"
 #include "epoll.h"
 #include "handler.h"
+#include "parse_upload.h"
 
 #define MAXUSER 8
 #define TIMEOUT 400
@@ -32,6 +33,8 @@ extern void* do_request(void* fdptr);
 
 int main()
 {
+    int user_count = 0;
+
     int listen_fd;
     listen_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -78,36 +81,53 @@ int main()
                         }
                     }
 
+                    if(user_count + 1 > MAXUSER) {
+                        //TODO
+                        //request denied
+
+                    }
+
+                    flag = fcntl(infd, F_GETFD, 0);
+                    flag |= O_NONBLOCK;
+                    fcntl(fd, F_SETFD, flag);
+
                     bzero(&event, sizeof(event));
-                    event.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT | EPOLLET | EPOLLRDHUP;
-                    event.data.ptr = (void*)new handler_t(infd);
+                    event.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT | EPOLLRDHUP;
+                    handler_t* new_handler = new handler_t(infd);
+                    new_handler->epoll_ptr = &epoll;
+                    event.data.ptr = (void*)new_handler;
                     epoll.add(infd, &event);
                 }
             }
             else {
                 if(fd2name.find(infd) == fd2name.end()) {
-                    if(events[i].events & EPOLLRDHUP) {
+                    if(!((events[i].events & EPOLLIN) || events[i].events & EPOLLOUT)) {
                         delete events[i].data.ptr;
                         epoll.del(infd, NULL);
                     }
-                    else {
-                        //sign in
-                        makethread(sign_in, (void*)&infd, int);
+                    else if(events[i].events & EPOLLOUT) {
+                        makethread_arg_mutable(sign_in, (void*)&infd, int);
                     }
                 }
                 else {
-                    
                     if(events[i].events & EPOLLERR) {
-                        
+                        name2fd.erase(fd2name[fd]);
+                        delete fd2data[fd];
+                        fd2name.erase(fd);
+                        //TODO
+                        //非每个连接的好友发关闭请求
+                        delete events[i].data.ptr;
+                        epoll.del(infd, NULL);
                     }
                     else if(events[i].events & EPOLLRDHUP) {
-
+                        //TODO
+                        //同上
                     }
                     else if(events[i].events & EPOLLIN) {
                         //用户已经存在并登录
                         //创建一个线程来处理用户请求
                         //主要是请求连接或者关闭链接
-                        
+                        makethread(parse_upload, events[i].data.ptr);
                     }
                     else if(events[i].events & EPOLLOUT) {
                         if(strlen(fd2data[infd]->will_be_write) > 0) {

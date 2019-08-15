@@ -7,73 +7,79 @@
 #include "handler.h"
 #include "handle_download.h"
 
+
 #define SMALLSIZE   8
 
 //未完成
-void* parse_upload(void* fdptr)
+void* parse_upload(void* hptr)
 {
-    int fd = *(int*)fdptr;
+    handler_t* h = (handler_t*)hptr;
+    int fd = h->fd;
+
+    int n;
+    int parse_state;
     int head_remain_size = HEADLEN;
     int msg_remain_size;
-    int parse_state;
-    int n;
-    handler_t* h = new handler_t(fd);
 
     while(1) {
         n = read(fd, h->cur_pos, head_remain_size);
-        if(n == 0) {
+        if(n == 0) 
             break;
-        }
         if(n < 0) {
-            if(errno == EAGAIN)
-                continue;
+            if((errno == EAGAIN) || (errno == EWOULDBLOCK))
+                break;
             else {
-                //TODO
-                //error
+                goto err;
             }
         }
-        head_remain_size -= n;
-        h->remain_size -= n;
+
         h->cur_pos += n;
         h->parse_byte += n;
-
-        parse_state = parse_upload_head((void*)h);
-        if(parse_state == PARSE_UPLOAD_AGAIN) 
+        head_remain_size -= n;
+        if(head_remain_size > 0 && ((parse_state = parse_upload_head(hptr)) == PARSE_UPLOAD_AGAIN)) {
             continue;
-        else if(parse_state != PARSE_UPLOAD_OK) {
-            //TODO
-            //error
+        }
+        else if(head_remain_size != 0 || parse_state != PARSE_UPLOAD_OK) {
+            goto err;
         }
 
-        //parse head finish
-        if(h->msglen == 0) {
-            download_handler((void*)h);
-            delete h;
-            h = new handler_t(fd);
-        }
-        else {
-            msg_remain_size = h->msglen;
-            while(msg_remain_size > 0) {
-                n = read(fd, h->cur_pos, msg_remain_size);
-                if(n == 0) 
+        //parse header finish
+        msg_remain_size = h->msglen;
+        while(1) {
+            n = read(fd, h->cur_pos, msg_remain_size);
+            if(n == 0)
+                break;
+            if(n < 0) {
+                if((errno == EAGAIN) || (errno == EWOULDBLOCK))
                     break;
-                if(n < 0) {
-                    //TODO
-                    //error
+                else {
+                    goto err;
                 }
-                msg_remain_size -= n;
-                h->cur_pos += n;
-                h->remain_size -= n;
             }
-            if(n == 0) {
-                //TODO
-            }
-            //read finish
-            download_handler((void*)h);
-            delete h;
-            h = new handler_t(fd);
+
+            msg_remain_size -= n;
+            h->cur_pos += n ;
+            if(msg_remain_size == 0) 
+                break;
+        }
+
+        if(msg_remain_size == 0) {
+            download_handler(hptr);
+            h->remake();
+            break;
         }
     }
+    struct epoll_event event;
+    memset(&event, '\0', sizeof(event));
+    event.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT | EPOLLRDHUP;
+    event.data.ptr = hptr;
+    h->epoll_ptr->mod(h->fd, &event);
+    return NULL;
+err:
+    //TODO
+    //向所有连接的好友发消息
+    close(fd);
+    return NULL;
 }
 
 int parse_upload_head(void* hptr)

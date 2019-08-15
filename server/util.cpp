@@ -17,7 +17,6 @@ void* sign_in(void* fdptr)
     fp = fdopen(fd, "r+");
     if(fp == NULL) 
         return NULL;
-    
 
     while(1) {
         //TODO
@@ -76,12 +75,14 @@ void* sign_in(void* fdptr)
 
             fprintf(fp, "Register successfully\n");
             
-            continue;
+            break;
         }   /* sign up */
         else if((strncmp(bufer, "exit", 4) == 0) || strncmp(bufer, "3", 1) == 0) {
             //exit
             //should server say something??
+            printf("connection fd=%d exit\n", fd);
             close(fd);
+            break;
         }
         else {
             //inllegal input
@@ -90,5 +91,5 @@ void* sign_in(void* fdptr)
         }
     }   /* while */
 
-    /* login successfully */
+    return NULL;
 }
