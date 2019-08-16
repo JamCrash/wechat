@@ -5,10 +5,14 @@
 #include <strings.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "dbg.h"
 #include "util.h"
+#include "parse_download.h"
+#include "handler.h"
 
-#define SMALLBUFSIZE 64
+#define SMALLBUFSIZE    64
+#define INPUTBUFSIZE    1024
 
 int main()
 {
@@ -24,12 +28,28 @@ int main()
         close(client_fd);
         return 0;
     }
-    
+
     if(connect(client_fd, (sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
         log_err("connection failed");
         close(client_fd);
         return 0;
     }
 
+    if(check_in(client_fd) != 0) {
+        close(client_fd);
+        return 0;
+    }
+
+    handler_t* handler = new handler_t(client_fd);
+
+    char input_bufer[INPUTBUFSIZE];
+    int n;
+    pthread_t tid;
+    if(makethread(&tid, read_info, (void*)handler) != 0) {
+        log_err("make read thread failed\n");
+        return 0;
+    }
+
+    //主线程 也即写线程
 
 }
