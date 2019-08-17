@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <unordered_set>
+#include <string>
 #include "dbg.h"
 #include "util.h"
 #include "parse_download.h"
@@ -13,6 +15,8 @@
 
 #define SMALLBUFSIZE    64
 #define INPUTBUFSIZE    1024
+
+std::unordered_set<std::string> friend_list;
 
 int main()
 {
@@ -51,5 +55,5 @@ int main()
     }
 
     //主线程 也即写线程
-
+    
 }

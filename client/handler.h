@@ -6,7 +6,7 @@
 #define HEADLEN 40
 
 struct handler_t {
-    handler_t(int infd): fd(infd), head_remain_size(HEADLEN), state(0)
+    handler_t(int infd): fd(infd), head_remain_size(HEADLEN), state(0), msglen(0)
     {
         cur_pos = parse_ptr = bufer;
     }

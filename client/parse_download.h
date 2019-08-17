@@ -14,6 +14,7 @@
 #define DOWNLOAD_CLOSE      0x4040
 
 void* read_info(void* arg);
-int parse_download_head(void* hptr)
+int parse_download_head(void* hptr);
+void print_msg(void* arg);
 
 #endif  /* PARSE_DOWNLOAD_H */

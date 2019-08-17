@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include "print_msg.h"
 #include "parse_download.h"
 #include "handler.h"
 
@@ -35,9 +36,31 @@ void* read_info(void* arg)
         }
 
         //parse_download_ok
+        print_msg(arg);
+    }
+}
+
+void print_msg(void* arg)
+{
+    handler_t* h = (handler_t*)arg;
+
+    if(h->method == DOWNLOAD_CLOSE) {
+        handle_close(arg);
+    }
+    else if(h->method == DOWNLOAD_CONNECT) {
+        handle_connect(arg);
+    }
+    else if(h->method == DOWNLOAD_SEND) {
+        handle_send(arg);
+    }
+    else if(h->method == DOWNLOAD_RESPONSE) {
+        handle_response(arg);
+    }
+    else {
 
     }
 }
+
 
 int parse_download_head(void* hptr)
 {
@@ -60,6 +83,7 @@ int parse_download_head(void* hptr)
 
     handler_t* h = (handler_t*)hptr;
     char ch;
+    char* buf;
 
     while(h->parse_byte > 0) {
         ch = *(h->parse_ptr);
@@ -225,10 +249,30 @@ int parse_download_head(void* hptr)
                     //error
                 }
                 h->state = pd_almostdownCR;
-                char buf[h->msglen_end - h->msglen_start + 1];
+                buf = new char[h->msglen_end - h->msglen_start + 1];
                 strncpy(buf, h->msglen_start, h->msglen_end - h->msglen_start);
                 h->msglen = atoi(buf);
-        }
-    }   /* while */
+                delete [] buf;
 
+                break;
+
+            case pd_almostdownCR:
+                if(ch != CR) {
+                    //TODO
+                    //err
+                }
+                h->state = pd_done;
+                break;
+
+            case pd_done:
+                h->parse_byte--;
+                h->parse_ptr++;
+                return PARSE_DOWNLOAD_OK;
+        }   /* switch */
+
+        h->parse_ptr++;
+        h->parse_byte--;
+    }   /* while */
+    
+    return PARSE_DOWNLOAD_ERROR;
 }
