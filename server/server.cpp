@@ -131,7 +131,7 @@ int main()
                     }
                     else if(events[i].events & EPOLLOUT) {
                         if(strlen(fd2data[infd]->will_be_write) > 0) {
-
+                            
                         }
                     }
                     else {
