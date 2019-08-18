@@ -18,7 +18,7 @@ void handle_close(void* arg)
     name[sizeof(name) - 1] = '\0';
 
     printf("connection to %s is closed\n", name);
-    friend_list.erase()
+    friend_list.erase(std::string(name));
 }
 
 void handle_connect(void* arg)
